@@ -1,0 +1,65 @@
+<!doctype html>
+</style>
+</head>
+<body>
+<h1>Car state detector</h1>
+<p>Выберите фото автомобиля. Модель вернёт два булевых результата: <em>Dirty</em> и <em>Damaged</em>.</p>
+
+
+<input id="fileInput" type="file" accept="image/*" />
+<div>
+<img id="preview" class="preview" src="#" alt="preview" style="display:none;" />
+</div>
+
+
+<button id="sendBtn">Отправить на анализ</button>
+<div id="status" class="result"></div>
+<div id="spinner" class="spinner">Загрузка...</div>
+
+
+<script>
+const input = document.getElementById('fileInput');
+const preview = document.getElementById('preview');
+const sendBtn = document.getElementById('sendBtn');
+const status = document.getElementById('status');
+const spinner = document.getElementById('spinner');
+
+
+input.addEventListener('change', (e) => {
+const file = e.target.files[0];
+if (!file) return;
+const url = URL.createObjectURL(file);
+preview.src = url; preview.style.display = 'block';
+status.textContent = '';
+});
+
+
+sendBtn.addEventListener('click', async () => {
+const file = input.files?.[0];
+if (!file) { alert('Выберите файл'); return; }
+
+
+spinner.style.display = 'inline';
+status.textContent = '';
+
+
+const fd = new FormData();
+fd.append('file', file);
+
+
+try {
+const resp = await fetch('/predict', { method: 'POST', body: fd });
+if (!resp.ok) throw new Error('Ошибка сети ' + resp.status);
+const json = await resp.json();
+// ожидание формата: { dirty: 0/1, dirty_score: 0..1, damaged: 0/1, damaged_score: 0..1 }
+status.innerHTML = `Dirty: ${json.dirty} (p=${json.dirty_score.toFixed(3)})<br>Damaged: ${json.damaged} (p=${json.damaged_score.toFixed(3)})`;
+} catch (err) {
+console.error(err);
+status.textContent = 'Ошибка: ' + err.message;
+} finally {
+spinner.style.display = 'none';
+}
+});
+</script>
+</body>
+</html>
